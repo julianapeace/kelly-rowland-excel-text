@@ -1,0 +1,17 @@
+{
+  "name": "kelly-rowland-excel-text",
+  "version": "1.0.0",
+  "description": "Text through Excel like Kelly Rowland - encrypted messaging with Excel UI",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "keywords": ["excel", "chat", "websocket", "encryption", "meme"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1"
+  }
+}

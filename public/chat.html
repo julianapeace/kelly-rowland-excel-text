@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Messenger - Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="excel-body">
+    <div class="excel-container">
+        <!-- Excel Title Bar -->
+        <div class="excel-title-bar">
+            <div class="title-left">
+                <span class="excel-icon">📊</span>
+                <span>Microsoft Excel - Messages.xlsx</span>
+            </div>
+            <div class="title-right">
+                <button class="title-btn" id="leave-btn">Leave Room</button>
+            </div>
+        </div>
+
+        <!-- Excel Menu Bar -->
+        <div class="excel-menu-bar">
+            <div class="menu-items">
+                <span>File</span>
+                <span>Edit</span>
+                <span>View</span>
+                <span>Insert</span>
+                <span>Format</span>
+            </div>
+            <div class="room-info">
+                <span class="room-badge">Room: <strong id="room-id-display"></strong></span>
+                <span class="users-badge">👥 <span id="user-count">0</span></span>
+            </div>
+        </div>
+
+        <!-- Excel Toolbar -->
+        <div class="excel-toolbar">
+            <div class="toolbar-section">
+                <button class="toolbar-btn">📋</button>
+                <button class="toolbar-btn">✂️</button>
+                <button class="toolbar-btn">📄</button>
+                <button class="toolbar-btn disabled">↩️</button>
+                <button class="toolbar-btn disabled">↪️</button>
+            </div>
+            <div class="toolbar-section">
+                <select class="font-select">
+                    <option>Calibri</option>
+                </select>
+                <select class="size-select">
+                    <option>11</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Formula Bar -->
+        <div class="formula-bar">
+            <div class="cell-ref">A<span id="current-row">1</span></div>
+            <div class="formula-input-container">
+                <input type="text" id="message-input" class="formula-input" placeholder="Type your message here and press Enter..." autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Excel Grid -->
+        <div class="excel-grid-container">
+            <!-- Messages Grid -->
+            <div class="excel-grid" id="messages-view">
+                <div class="grid-header">
+                    <div class="grid-header-cell corner"></div>
+                    <div class="grid-header-cell">A</div>
+                    <div class="grid-header-cell">B</div>
+                    <div class="grid-header-cell">C</div>
+                    <div class="grid-header-cell">D</div>
+                </div>
+                <div class="grid-body" id="message-grid">
+                    <!-- Messages will be added as rows here -->
+                </div>
+            </div>
+
+            <!-- Users Grid -->
+            <div class="excel-grid" id="users-view" style="display: none;">
+                <div class="grid-header">
+                    <div class="grid-header-cell corner"></div>
+                    <div class="grid-header-cell">A</div>
+                    <div class="grid-header-cell">B</div>
+                    <div class="grid-header-cell">C</div>
+                    <div class="grid-header-cell">D</div>
+                </div>
+                <div class="grid-body" id="user-grid">
+                    <!-- Users will be added as rows here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Excel Status Bar -->
+        <div class="excel-status-bar">
+            <div class="status-left">
+                <span id="status-message">Ready</span>
+            </div>
+            <div class="status-right">
+                <span id="typing-indicator"></span>
+            </div>
+        </div>
+
+        <!-- Sheet Tabs -->
+        <div class="excel-sheet-tabs">
+            <div class="sheet-nav">
+                <button class="sheet-nav-btn">◀</button>
+                <button class="sheet-nav-btn">▶</button>
+            </div>
+            <div class="sheet-tabs">
+                <div class="sheet-tab active">
+                    <span>💬 Messages</span>
+                </div>
+                <div class="sheet-tab">
+                    <span>👥 Users</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="crypto.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
