@@ -7,120 +7,89 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="landing-container">
-        <div class="header">
-            <h1>📊 Excel Text Messenger</h1>
-            <p class="subtitle">Text through Excel like Kelly Rowland • End-to-End Encrypted</p>
+    <div class="landing">
+        <div class="landing-header">
+            <h1>📊 Kelly Rowland Excel Messenger</h1>
+            <p>Text through Excel like it's 2002</p>
+            <img src="https://i.imgur.com/E26btLu.jpeg" alt="Kelly Rowland texting on Excel" style="max-width: 400px; border-radius: 8px; margin: 20px 0;">
         </div>
 
-        <div class="form-container">
-            <div class="tab-buttons">
-                <button class="tab-btn active" data-tab="create">Create Room</button>
-                <button class="tab-btn" data-tab="join">Join Room</button>
+        <div class="landing-content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('create')">Create Channel</button>
+                <button class="tab-btn" onclick="switchTab('join')">Join Channel</button>
             </div>
 
-            <div class="tab-content active" id="create-tab">
-                <h2>Create a New Room</h2>
-                <form id="create-form">
-                    <div class="form-group">
-                        <label>Your Name</label>
-                        <input type="text" id="create-username" placeholder="Enter your name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Room Passphrase 🔒</label>
-                        <input type="password" id="create-passphrase" placeholder="Create a secure passphrase" required>
-                        <small>This will be used for end-to-end encryption. Share it with people you want to chat with!</small>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Create Room</button>
+            <div id="create-panel" class="panel active">
+                <h2>Create New Channel</h2>
+                <form onsubmit="createChannel(event)">
+                    <input type="text" id="create-username" placeholder="Your name" required>
+                    <input type="password" id="create-passphrase" placeholder="Encryption passphrase" required>
+                    <small>Share this passphrase with people you want to chat with</small>
+                    <button type="submit">Create Channel</button>
                 </form>
             </div>
 
-            <div class="tab-content" id="join-tab">
-                <h2>Join an Existing Room</h2>
-                <form id="join-form">
-                    <div class="form-group">
-                        <label>Your Name</label>
-                        <input type="text" id="join-username" placeholder="Enter your name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Room ID</label>
-                        <input type="text" id="join-room-id" placeholder="Enter room ID" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Room Passphrase 🔒</label>
-                        <input type="password" id="join-passphrase" placeholder="Enter room passphrase" required>
-                        <small>Get this from the person who created the room</small>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Join Room</button>
+            <div id="join-panel" class="panel">
+                <h2>Join Existing Channel</h2>
+                <form onsubmit="joinChannel(event)">
+                    <input type="text" id="join-username" placeholder="Your name" required>
+                    <input type="text" id="join-channel" placeholder="Channel ID" required>
+                    <input type="password" id="join-passphrase" placeholder="Encryption passphrase" required>
+                    <button type="submit">Join Channel</button>
                 </form>
             </div>
-        </div>
 
-        <div class="info-section">
-            <h3>How it works:</h3>
-            <ul>
-                <li>🔐 All messages are encrypted end-to-end using AES-GCM</li>
-                <li>🔑 Your passphrase never leaves your browser</li>
-                <li>📊 Messages appear in an Excel-like interface (because why not?)</li>
-                <li>🚀 Real-time messaging via WebSockets</li>
-            </ul>
+            <div class="features">
+                <h3>Features</h3>
+                <ul>
+                    <li>🔐 End-to-end encrypted messaging</li>
+                    <li>📊 Authentic Excel interface</li>
+                    <li>⚡ Real-time WebSocket communication</li>
+                    <li>👥 Multi-user channels</li>
+                    <li>💬 Private & encrypted channels</li>
+                </ul>
+            </div>
         </div>
     </div>
 
-    <script src="crypto.js"></script>
     <script>
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.dataset.tab;
-                
-                // Update active states
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                btn.classList.add('active');
-                document.getElementById(`${tab}-tab`).classList.add('active');
-            });
-        });
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + '-panel').classList.add('active');
+        }
 
-        // Create room form
-        document.getElementById('create-form').addEventListener('submit', async (e) => {
+        function createChannel(e) {
             e.preventDefault();
-            
-            const username = document.getElementById('create-username').value.trim();
+            const username = document.getElementById('create-username').value;
             const passphrase = document.getElementById('create-passphrase').value;
+            const channelId = generateChannelId();
             
-            // Generate random room ID
-            const roomId = generateRoomId();
-            
-            // Store session data
             sessionStorage.setItem('username', username);
-            sessionStorage.setItem('roomId', roomId);
+            sessionStorage.setItem('channelId', channelId);
             sessionStorage.setItem('passphrase', passphrase);
             
-            // Redirect to chat
-            window.location.href = `chat.html`;
-        });
+            window.location.href = 'excel.html';
+        }
 
-        // Join room form
-        document.getElementById('join-form').addEventListener('submit', async (e) => {
+        function joinChannel(e) {
             e.preventDefault();
-            
-            const username = document.getElementById('join-username').value.trim();
-            const roomId = document.getElementById('join-room-id').value.trim();
+            const username = document.getElementById('join-username').value;
+            const channelId = document.getElementById('join-channel').value;
             const passphrase = document.getElementById('join-passphrase').value;
             
-            // Store session data
             sessionStorage.setItem('username', username);
-            sessionStorage.setItem('roomId', roomId);
+            sessionStorage.setItem('channelId', channelId);
             sessionStorage.setItem('passphrase', passphrase);
             
-            // Redirect to chat
-            window.location.href = `chat.html`;
-        });
+            window.location.href = 'excel.html';
+        }
 
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 10).toUpperCase();
+        function generateChannelId() {
+            return 'CH' + Math.random().toString(36).substring(2, 10).toUpperCase();
         }
     </script>
 </body>

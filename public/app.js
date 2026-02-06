@@ -2,347 +2,224 @@
  * Kelly Rowland Excel Text - Main Application
  */
 
-// Global state
-let socket;
-let cryptoManager;
-let currentRow = 1;
+let ws;
+let crypto;
 let username;
-let roomId;
+let channelId;
+let rowCount = 1;
 let typingTimeout;
-let currentView = 'messages'; // 'messages' or 'users'
-let roomUsers = []; // Array of usernames in the room
 
-// Initialize app
+// Initialize
 async function init() {
-    // Get session data
     username = sessionStorage.getItem('username');
-    roomId = sessionStorage.getItem('roomId');
+    channelId = sessionStorage.getItem('channelId');
     const passphrase = sessionStorage.getItem('passphrase');
 
-    // Validate session
-    if (!username || !roomId || !passphrase) {
+    if (!username || !channelId || !passphrase) {
         window.location.href = 'index.html';
         return;
     }
 
-    // Display room info
-    document.getElementById('room-id-display').textContent = roomId;
+    // Display channel info
+    document.getElementById('channel-display').textContent = channelId;
 
     // Initialize encryption
-    cryptoManager = new CryptoManager();
-    const salt = await cryptoManager.getRoomSalt(roomId);
-    await cryptoManager.deriveKey(passphrase, salt);
-    
-    console.log('🔐 Encryption initialized');
+    crypto = new CryptoManager();
+    const salt = await crypto.getSalt(channelId);
+    await crypto.deriveKey(passphrase, salt);
+    console.log('🔐 Encryption ready');
 
-    // Connect to WebSocket
-    initSocket();
-
-    // Set up event listeners
-    setupEventListeners();
-
-    updateStatus('Connected - Ready to send messages');
+    // Connect WebSocket
+    connectWebSocket();
 }
 
-/**
- * Initialize Socket.io connection
- */
-function initSocket() {
-    socket = io();
+function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+    ws = new WebSocket(wsUrl);
 
-    socket.on('connect', () => {
+    ws.onopen = () => {
         console.log('✅ Connected to server');
-        socket.emit('join-room', { roomId, username });
-    });
-
-    socket.on('user-joined', ({ username: joinedUser, users }) => {
-        updateStatus(`${joinedUser} joined the room`);
-        roomUsers = users;
-        updateUserCount(users.length);
+        setStatus('Connected');
         
-        // Update user list if on users tab
-        if (currentView === 'users') {
-            renderUserList();
+        // Join channel
+        ws.send(JSON.stringify({
+            type: 'join',
+            channelId,
+            username
+        }));
+    };
+
+    ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        
+        switch(data.type) {
+            case 'connected':
+                console.log(data.message);
+                break;
+            case 'user-joined':
+                handleUserJoined(data);
+                break;
+            case 'user-left':
+                handleUserLeft(data);
+                break;
+            case 'message':
+                await handleMessage(data);
+                break;
+            case 'typing':
+                handleTyping(data);
+                break;
         }
-        
-        // Add system message
-        addSystemMessage(`${joinedUser} joined the chat`);
-    });
+    };
 
-    socket.on('user-left', ({ username: leftUser, users }) => {
-        updateStatus(`${leftUser} left the room`);
-        roomUsers = users;
-        updateUserCount(users.length);
-        
-        // Update user list if on users tab
-        if (currentView === 'users') {
-            renderUserList();
-        }
-        
-        // Add system message
-        addSystemMessage(`${leftUser} left the chat`);
-    });
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setStatus('Connection error');
+    };
 
-    socket.on('receive-message', async ({ username: sender, encryptedData, timestamp }) => {
-        // Decrypt the message
-        const decryptedMessage = await cryptoManager.decrypt(encryptedData);
-        
-        // Add to grid
-        addMessageToGrid(sender, decryptedMessage, timestamp);
-    });
-
-    socket.on('user-typing', ({ username: typingUser }) => {
-        showTypingIndicator(typingUser);
-    });
-
-    socket.on('disconnect', () => {
-        updateStatus('Disconnected from server');
-        console.log('❌ Disconnected from server');
-    });
+    ws.onclose = () => {
+        console.log('❌ Disconnected');
+        setStatus('Disconnected');
+        setTimeout(connectWebSocket, 3000); // Reconnect
+    };
 }
 
-/**
- * Set up event listeners
- */
-function setupEventListeners() {
-    // Message input
-    const messageInput = document.getElementById('message-input');
-    
-    messageInput.addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            await sendMessage();
-        }
-    });
-
-    messageInput.addEventListener('input', () => {
-        // Emit typing indicator
-        if (!typingTimeout) {
-            socket.emit('typing', { roomId });
-        }
-        
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            typingTimeout = null;
-        }, 1000);
-    });
-
-    // Leave room button
-    document.getElementById('leave-btn').addEventListener('click', () => {
-        if (confirm('Are you sure you want to leave this room?')) {
-            sessionStorage.clear();
-            window.location.href = 'index.html';
-        }
-    });
-
-    // Sheet tab switching
-    const sheetTabs = document.querySelectorAll('.sheet-tab');
-    sheetTabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => {
-            // Update active tab styling
-            sheetTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-
-            // Switch views
-            if (index === 0) {
-                switchToMessagesView();
-            } else if (index === 1) {
-                switchToUsersView();
-            }
-        });
-    });
+async function handleMessage(data) {
+    const decrypted = await crypto.decrypt(data.encryptedData);
+    addRow(data.username, decrypted, data.timestamp, false);
 }
 
-/**
- * Send a message
- */
-async function sendMessage() {
-    const input = document.getElementById('message-input');
-    const message = input.value.trim();
-
-    if (!message) return;
-
-    try {
-        // Encrypt the message
-        const encryptedData = await cryptoManager.encrypt(message);
-
-        // Add to own grid immediately
-        addMessageToGrid(username, message, Date.now(), true);
-
-        // Send to server
-        socket.emit('send-message', { roomId, encryptedData });
-
-        // Clear input
-        input.value = '';
-        
-        updateStatus('Message sent');
-    } catch (error) {
-        console.error('Failed to send message:', error);
-        updateStatus('Failed to send message');
-    }
+function handleUserJoined(data) {
+    addSystemRow(`${data.username} joined`);
+    updateUserCount(data.users.length);
 }
 
-/**
- * Add message to Excel grid
- */
-function addMessageToGrid(sender, message, timestamp, isSent = false) {
-    const grid = document.getElementById('message-grid');
-    const time = new Date(timestamp).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
-
-    const row = document.createElement('div');
-    row.className = 'grid-row';
-    
-    // Add sent/received class for styling
-    if (isSent) {
-        row.classList.add('sent-message');
-    }
-
-    row.innerHTML = `
-        <div class="grid-cell row-number">${currentRow}</div>
-        <div class="grid-cell">${time}</div>
-        <div class="grid-cell sender-cell">${escapeHtml(sender)}</div>
-        <div class="grid-cell message-cell">${escapeHtml(message)}</div>
-        <div class="grid-cell status-cell">${isSent ? '✓' : '📩'}</div>
-    `;
-
-    grid.appendChild(row);
-    currentRow++;
-
-    // Update current row display
-    document.getElementById('current-row').textContent = currentRow;
-
-    // Scroll to bottom
-    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+function handleUserLeft(data) {
+    addSystemRow(`${data.username} left`);
+    updateUserCount(data.users.length);
 }
 
-/**
- * Add system message to grid
- */
-function addSystemMessage(message) {
-    const grid = document.getElementById('message-grid');
-    
-    const row = document.createElement('div');
-    row.className = 'grid-row system-message';
-    
-    row.innerHTML = `
-        <div class="grid-cell row-number">${currentRow}</div>
-        <div class="grid-cell"></div>
-        <div class="grid-cell" style="font-style: italic; color: #666;">System</div>
-        <div class="grid-cell" style="font-style: italic; color: #666;">${escapeHtml(message)}</div>
-        <div class="grid-cell">ℹ️</div>
-    `;
-
-    grid.appendChild(row);
-    currentRow++;
-
-    document.getElementById('current-row').textContent = currentRow;
-}
-
-/**
- * Update status bar
- */
-function updateStatus(message) {
-    document.getElementById('status-message').textContent = message;
-    
-    // Clear after 3 seconds
-    setTimeout(() => {
-        document.getElementById('status-message').textContent = 'Ready';
-    }, 3000);
-}
-
-/**
- * Update user count
- */
-function updateUserCount(count) {
-    document.getElementById('user-count').textContent = count;
-}
-
-/**
- * Show typing indicator
- */
-function showTypingIndicator(typingUser) {
+function handleTyping(data) {
     const indicator = document.getElementById('typing-indicator');
-    indicator.textContent = `${typingUser} is typing...`;
+    indicator.textContent = `${data.username} is typing...`;
     
-    // Clear after 2 seconds
-    setTimeout(() => {
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
         indicator.textContent = '';
     }, 2000);
 }
 
-/**
- * Escape HTML to prevent XSS
- */
+async function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+
+    if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    try {
+        // Encrypt message
+        const encrypted = await crypto.encrypt(message);
+
+        // Send to server
+        ws.send(JSON.stringify({
+            type: 'message',
+            channelId,
+            encryptedData: encrypted
+        }));
+
+        // Add to own grid
+        addRow(username, message, Date.now(), true);
+
+        input.value = '';
+        setStatus('Message sent');
+    } catch (error) {
+        console.error('Failed to send:', error);
+        setStatus('Send failed');
+    }
+}
+
+function addRow(user, message, timestamp, isSent) {
+    const grid = document.getElementById('message-grid');
+    const time = new Date(timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const row = document.createElement('tr');
+    row.className = isSent ? 'sent' : 'received';
+
+    row.innerHTML = `
+        <td class="row-header">${rowCount}</td>
+        <td>${time}</td>
+        <td>${escapeHtml(user)}</td>
+        <td>${escapeHtml(message)}</td>
+        <td>${isSent ? '✓' : '📩'}</td>
+    `;
+
+    grid.appendChild(row);
+    rowCount++;
+    
+    document.getElementById('current-row').textContent = rowCount;
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function addSystemRow(message) {
+    const grid = document.getElementById('message-grid');
+    
+    const row = document.createElement('tr');
+    row.className = 'system';
+    row.innerHTML = `
+        <td class="row-header">${rowCount}</td>
+        <td></td>
+        <td style="font-style: italic;">System</td>
+        <td style="font-style: italic;">${escapeHtml(message)}</td>
+        <td>ℹ️</td>
+    `;
+    
+    grid.appendChild(row);
+    rowCount++;
+}
+
+function handleKeyPress(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    } else {
+        // Send typing indicator
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'typing',
+                channelId
+            }));
+        }
+    }
+}
+
+function leaveChannel() {
+    if (confirm('Leave this channel?')) {
+        if (ws) {
+            ws.send(JSON.stringify({
+                type: 'leave',
+                channelId
+            }));
+            ws.close();
+        }
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+    }
+}
+
+function setStatus(message) {
+    document.getElementById('status-text').textContent = message;
+}
+
+function updateUserCount(count) {
+    document.getElementById('user-count').textContent = count;
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-/**
- * Tab Switching
- */
-function switchToMessagesView() {
-    currentView = 'messages';
-    document.getElementById('messages-view').style.display = 'table';
-    document.getElementById('users-view').style.display = 'none';
-    document.getElementById('message-input').disabled = false;
-    updateStatus('Viewing messages');
-}
-
-function switchToUsersView() {
-    currentView = 'users';
-    document.getElementById('messages-view').style.display = 'none';
-    document.getElementById('users-view').style.display = 'table';
-    document.getElementById('message-input').disabled = true;
-    renderUserList();
-    updateStatus('Viewing users');
-}
-
-/**
- * Render user list in Excel grid
- */
-function renderUserList() {
-    const userGrid = document.getElementById('user-grid');
-    userGrid.innerHTML = '';
-
-    if (roomUsers.length === 0) {
-        // Show empty state
-        const row = document.createElement('div');
-        row.className = 'grid-row';
-        row.innerHTML = `
-            <div class="grid-cell row-number">1</div>
-            <div class="grid-cell" style="text-align: center; font-style: italic; color: #999;" colspan="4">No users in room</div>
-            <div class="grid-cell"></div>
-            <div class="grid-cell"></div>
-            <div class="grid-cell"></div>
-        `;
-        userGrid.appendChild(row);
-        return;
-    }
-
-    roomUsers.forEach((user, index) => {
-        const row = document.createElement('div');
-        row.className = 'grid-row';
-        
-        const isCurrentUser = user === username;
-        const rowClass = isCurrentUser ? 'sent-message' : '';
-        if (rowClass) row.classList.add(rowClass);
-
-        row.innerHTML = `
-            <div class="grid-cell row-number">${index + 1}</div>
-            <div class="grid-cell sender-cell">${escapeHtml(user)}</div>
-            <div class="grid-cell">🟢 Online</div>
-            <div class="grid-cell">${isCurrentUser ? '(You)' : 'Active'}</div>
-            <div class="grid-cell">✓</div>
-        `;
-
-        userGrid.appendChild(row);
-    });
-}
-
-// Start the app when page loads
+// Start app
 document.addEventListener('DOMContentLoaded', init);

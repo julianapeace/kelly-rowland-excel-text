@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Messenger</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="excel-body">
+    <div class="excel-window">
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <div class="title-left">
+                <span class="icon">📊</span>
+                <span>Microsoft Excel - Messages.xlsx</span>
+            </div>
+            <div class="title-right">
+                <button onclick="leaveChannel()">Leave</button>
+            </div>
+        </div>
+
+        <!-- Menu Bar -->
+        <div class="menu-bar">
+            <div class="menu-items">
+                <span>File</span>
+                <span>Edit</span>
+                <span>View</span>
+                <span>Insert</span>
+                <span>Format</span>
+            </div>
+            <div class="channel-info">
+                <span>Channel: <strong id="channel-display"></strong></span>
+                <span>👥 <span id="user-count">0</span></span>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="toolbar-btn">📋</button>
+            <button class="toolbar-btn">✂️</button>
+            <button class="toolbar-btn">📄</button>
+            <button class="toolbar-btn">↩️</button>
+            <button class="toolbar-btn">↪️</button>
+            <div class="separator"></div>
+            <select class="font-select">
+                <option>Calibri</option>
+                <option>Arial</option>
+            </select>
+            <select class="size-select">
+                <option>11</option>
+            </select>
+        </div>
+
+        <!-- Formula Bar -->
+        <div class="formula-bar">
+            <div class="cell-ref">A<span id="current-row">1</span></div>
+            <input type="text" id="message-input" class="formula-input" 
+                   placeholder="Type message and press Enter..." 
+                   onkeypress="handleKeyPress(event)">
+        </div>
+
+        <!-- Spreadsheet Grid -->
+        <div class="grid-container">
+            <table class="excel-grid">
+                <thead>
+                    <tr>
+                        <th class="row-header"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                    </tr>
+                    <tr>
+                        <th class="row-header"></th>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="message-grid">
+                    <!-- Messages appear here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="status-text">Ready</span>
+            </div>
+            <div class="status-right">
+                <span id="typing-indicator"></span>
+            </div>
+        </div>
+
+        <!-- Sheet Tabs -->
+        <div class="sheet-tabs">
+            <div class="tab-nav">
+                <button>◀</button>
+                <button>▶</button>
+            </div>
+            <div class="tabs">
+                <div class="sheet-tab active">💬 Messages</div>
+                <div class="sheet-tab">📊 Data</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="crypto.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

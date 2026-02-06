@@ -1,19 +1,24 @@
 # 📊 Kelly Rowland Excel Text Messenger
 
-A hilarious meme-inspired project that lets you text through an Excel interface, just like [Kelly Rowland's iconic moment](https://knowyourmeme.com/memes/kelly-rowland-texting-on-microsoft-excel). Features real-time messaging with end-to-end encryption!
+> Text through Excel like it's 2002 - A meme-inspired real-time messaging app with authentic Excel UI and end-to-end encryption.
 
-![Excel Messenger](https://img.shields.io/badge/Excel-217346?style=for-the-badge&logo=microsoft-excel&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen)
 
-## 🎯 Features
+## 🎭 About
 
-- **📊 Excel-like Interface**: Authentic Excel UI with grid, formula bar, toolbars, and sheet tabs
-- **🔐 End-to-End Encryption**: AES-GCM encryption with PBKDF2 key derivation
-- **💬 Room-based Messaging**: Create or join private channels
-- **⚡ Real-time Communication**: WebSocket-powered instant messaging
-- **👥 User Presence**: See who's in the room and typing indicators
-- **🎨 Vanilla JavaScript**: No frameworks - pure HTML, CSS, and JavaScript
+Remember when Kelly Rowland tried to text Nelly through Microsoft Excel in the "Dilemma" music video? This project brings that iconic moment to life with a fully functional messaging application that looks and feels like Excel, complete with WebSocket-powered real-time communication and military-grade encryption.
+
+## ✨ Features
+
+- **📊 Authentic Excel UI** - Complete with title bar, menu bar, toolbar, formula bar, and spreadsheet grid
+- **🔐 End-to-End Encryption** - AES-GCM 256-bit encryption with PBKDF2 key derivation
+- **⚡ Real-Time Messaging** - WebSocket-based instant communication
+- **👥 Multi-User Channels** - Create or join encrypted channels with multiple users
+- **🔒 Private Channels** - One-to-one or one-to-many encrypted conversations
+- **💬 Typing Indicators** - See when others are typing
+- **📱 Responsive Design** - Works on desktop and mobile
+- **🎨 Pure Vanilla JavaScript** - No frameworks, just clean HTML/CSS/JS
 
 ## 🚀 Quick Start
 
@@ -26,8 +31,8 @@ A hilarious meme-inspired project that lets you text through an Excel interface,
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/kelly-rowland-excel-text.git
-cd kelly-rowland-excel-text
+git clone https://github.com/yourusername/livestream-kelly-excel-text.git
+cd livestream-kelly-excel-text
 ```
 
 2. Install dependencies:
@@ -40,121 +45,118 @@ npm install
 npm start
 ```
 
-4. Open your browser and navigate to:
+4. Open your browser:
 ```
 http://localhost:3000
 ```
 
 ## 📖 How to Use
 
-### Creating a Room
+### Creating a Channel
 
-1. Enter your name
-2. Create a secure passphrase (this is used for encryption)
-3. Click "Create Room"
-4. Share the generated Room ID and passphrase with people you want to chat with
+1. On the landing page, select **"Create Channel"**
+2. Enter your name
+3. Create a secure passphrase for encryption
+4. Click "Create Channel"
+5. Share the **Channel ID** and **passphrase** with people you want to chat with
 
-### Joining a Room
+### Joining a Channel
 
-1. Enter your name
-2. Enter the Room ID (provided by room creator)
-3. Enter the room passphrase
-4. Click "Join Room"
+1. Select **"Join Channel"**
+2. Enter your name
+3. Enter the Channel ID (provided by channel creator)
+4. Enter the passphrase
+5. Click "Join Channel"
 
 ### Sending Messages
 
 - Type your message in the formula bar (just like Excel!)
-- Press Enter to send
-- Messages appear as rows in the spreadsheet
-- Green rows = your messages
-- White rows = received messages
-- Yellow rows = system messages
+- Press **Enter** to send
+- Your messages appear in green rows
+- Received messages appear in white rows
+- System messages appear in yellow rows
 
-## 🔒 Security
+## 🔐 Security
 
-### End-to-End Encryption
+### Encryption Details
 
-All messages are encrypted **client-side** before being sent:
-
-- **Algorithm**: AES-GCM (256-bit)
+- **Algorithm**: AES-GCM 256-bit
 - **Key Derivation**: PBKDF2 with 100,000 iterations
-- **Salt**: Derived from room ID for consistency
-- **IV**: Random 12-byte IV per message
+- **Salt**: Deterministically derived from channel ID
+- **IV**: Random 12-byte initialization vector per message
 
-The server **never** sees your unencrypted messages - it only relays encrypted data!
+### Privacy
 
-### Security Notes
-
-- Your passphrase never leaves your browser
-- The server cannot decrypt your messages
-- Each room has a unique encryption key
-- Use strong passphrases for better security
+- ✅ All encryption happens **client-side**
+- ✅ Your passphrase **never** leaves your browser
+- ✅ Server only relays encrypted data
+- ✅ Server **cannot** decrypt your messages
+- ✅ Each channel has a unique encryption key
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐         WebSocket          ┌─────────────────┐
-│                 │◄────────────────────────────►│                 │
-│  Client A       │                              │  Server         │
-│  (Encrypt)      │         Encrypted            │  (Relay Only)   │
-│                 │         Messages             │                 │
-└─────────────────┘                              └─────────────────┘
-                                                          ▲
-                                                          │
-                                                          │ WebSocket
-                                                          │
-                                                          ▼
-                                                 ┌─────────────────┐
-                                                 │  Client B       │
-                                                 │  (Decrypt)      │
-                                                 │                 │
-                                                 └─────────────────┘
+┌──────────────┐                    ┌──────────────┐
+│   Client A   │◄──────────────────►│   Server     │
+│  (Browser)   │   WebSocket        │  (Node.js)   │
+│              │   Encrypted Data   │              │
+│  • Encrypt   │                    │  • Relay     │
+│  • Decrypt   │                    │  • Broadcast │
+└──────────────┘                    └──────────────┘
+                                            ▲
+                                            │
+                                    WebSocket
+                                            │
+                                            ▼
+                                   ┌──────────────┐
+                                   │   Client B   │
+                                   │  (Browser)   │
+                                   │              │
+                                   │  • Decrypt   │
+                                   │  • Encrypt   │
+                                   └──────────────┘
 ```
-
-### Tech Stack
-
-**Frontend:**
-- Vanilla JavaScript
-- Web Crypto API for encryption
-- Socket.io client
-
-**Backend:**
-- Node.js
-- Express.js
-- Socket.io server
 
 ## 📁 Project Structure
 
 ```
-kelly-rowland-excel-text/
-├── server/
-│   └── server.js           # Express + Socket.io server
-├── public/
-│   ├── index.html          # Landing page
-│   ├── chat.html           # Excel chat interface
-│   ├── styles.css          # All styling
-│   ├── app.js              # Main application logic
-│   └── crypto.js           # Encryption utilities
-├── package.json
-└── README.md
+livestream-kelly-excel-text/
+├── server.js              # WebSocket server
+├── package.json           # Dependencies
+├── README.md             # Documentation
+└── public/
+    ├── index.html        # Landing page
+    ├── excel.html        # Excel chat interface
+    ├── styles.css        # All styling
+    ├── app.js            # Main application logic
+    └── crypto.js         # Encryption utilities
 ```
+
+## 🛠️ Tech Stack
+
+**Backend:**
+- Node.js
+- Express.js
+- ws (WebSocket library)
+
+**Frontend:**
+- Vanilla JavaScript
+- Web Crypto API
+- WebSocket API
+- HTML5/CSS3
 
 ## 🎨 Features Breakdown
 
 ### Excel UI Components
 
-- ✅ Title bar with app name
-- ✅ Menu bar with room info
+- ✅ Title bar with app name and controls
+- ✅ Menu bar with File, Edit, View, Insert, Format
 - ✅ Toolbar with Excel-like buttons
-- ✅ Formula bar for message input
-- ✅ Spreadsheet grid with columns:
-  - Row number
-  - Timestamp
-  - Sender
-  - Message
-  - Status icon
-- ✅ Status bar with typing indicators
+- ✅ Formula bar for message input (just like Excel!)
+- ✅ Spreadsheet grid with columns: Time, User, Message, Status
+- ✅ Status bar with connection status
 - ✅ Sheet tabs at the bottom
+- ✅ Row numbers and column letters
 
 ### Messaging Features
 
@@ -163,23 +165,8 @@ kelly-rowland-excel-text/
 - ✅ User join/leave notifications
 - ✅ Message timestamps
 - ✅ User count display
-- ✅ Smooth scrolling to new messages
-
-## 🛠️ Development
-
-### Running in Development Mode
-
-```bash
-npm run dev
-```
-
-### Configuration
-
-The server runs on port 3000 by default. To change it:
-
-```bash
-PORT=8080 npm start
-```
+- ✅ Auto-scroll to new messages
+- ✅ Message status indicators
 
 ## 🚢 Deployment
 
@@ -197,37 +184,60 @@ git push heroku main
 3. Set start command: `npm start`
 4. Deploy!
 
+### Docker
+
+```bash
+docker build -t kelly-excel-text .
+docker run -p 3000:3000 kelly-excel-text
+```
+
+## 🔧 Configuration
+
+The server runs on port 3000 by default. Change it:
+
+```bash
+PORT=8080 npm start
+```
+
 ## 🤝 Contributing
 
-This is a meme project, but contributions are welcome! Feel free to:
+This is a meme project, but contributions are welcome!
 
-- Add new features
-- Improve the Excel UI
-- Enhance security
-- Fix bugs
-- Add tests
-
-## 📝 License
-
-MIT License - feel free to use this for your own meme projects!
-
-## 🎭 Credits
-
-Inspired by the legendary Kelly Rowland Excel texting meme. Never forget.
-
-## 🐛 Known Issues
-
-- None yet! But if you find any, please open an issue.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 💡 Future Ideas
 
-- [ ] File sharing (Excel attachments, of course)
-- [ ] Voice notes (as Excel cell formulas?)
-- [ ] Video calls (in a cell?)
-- [ ] Pivot tables for message analytics
+- [ ] File attachments (as Excel files, of course)
+- [ ] Voice messages (encoded in cells?)
+- [ ] Message history persistence
+- [ ] Channel discovery
+- [ ] Multiple sheet tabs for different conversations
+- [ ] Excel formulas as commands
+- [ ] Chart visualization of message stats
 - [ ] VLOOKUP your chat history
-- [ ] Conditional formatting for different message types
+
+## 📝 License
+
+MIT License - Feel free to use for your own meme projects!
+
+## 🎭 Credits
+
+Inspired by the legendary Kelly Rowland Excel texting meme from Nelly's "Dilemma" music video (2002).
+
+## 🐛 Known Issues
+
+- None yet! Open an issue if you find any.
+
+## 📞 Support
+
+Having issues? Open an issue on GitHub or contact the maintainer.
 
 ---
 
-Made with ❤️ and 😂 by Excel enthusiasts
+**Made with ❤️ and 😂 by Excel enthusiasts**
+
+*"Can U Handle Me?" - Kelly Rowland (via Excel)*

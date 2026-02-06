@@ -1,11 +1,11 @@
 /**
- * End-to-End Encryption Module
- * Uses Web Crypto API with AES-GCM encryption
+ * End-to-End Encryption using Web Crypto API
+ * AES-GCM with PBKDF2 key derivation
  */
 
 class CryptoManager {
     constructor() {
-        this.cryptoKey = null;
+        this.key = null;
         this.encoder = new TextEncoder();
         this.decoder = new TextDecoder();
     }
@@ -13,13 +13,7 @@ class CryptoManager {
     /**
      * Derive encryption key from passphrase
      */
-    async deriveKey(passphrase, salt = null) {
-        // Use provided salt or generate new one
-        if (!salt) {
-            salt = crypto.getRandomValues(new Uint8Array(16));
-        }
-
-        // Import passphrase as key material
+    async deriveKey(passphrase, salt) {
         const keyMaterial = await crypto.subtle.importKey(
             'raw',
             this.encoder.encode(passphrase),
@@ -28,8 +22,7 @@ class CryptoManager {
             ['deriveBits', 'deriveKey']
         );
 
-        // Derive actual encryption key
-        this.cryptoKey = await crypto.subtle.deriveKey(
+        this.key = await crypto.subtle.deriveKey(
             {
                 name: 'PBKDF2',
                 salt: salt,
@@ -41,91 +34,72 @@ class CryptoManager {
             false,
             ['encrypt', 'decrypt']
         );
-
-        return salt;
     }
 
     /**
-     * Encrypt a message
-     * Returns base64 encoded string with IV prepended
+     * Generate salt from channel ID (deterministic)
+     */
+    async getSalt(channelId) {
+        const encoded = this.encoder.encode(channelId);
+        const hash = await crypto.subtle.digest('SHA-256', encoded);
+        return new Uint8Array(hash).slice(0, 16);
+    }
+
+    /**
+     * Encrypt message
      */
     async encrypt(plaintext) {
-        if (!this.cryptoKey) {
-            throw new Error('Encryption key not initialized');
-        }
+        if (!this.key) throw new Error('Key not initialized');
 
-        // Generate random IV
         const iv = crypto.getRandomValues(new Uint8Array(12));
-
-        // Encrypt the message
         const encrypted = await crypto.subtle.encrypt(
-            {
-                name: 'AES-GCM',
-                iv: iv
-            },
-            this.cryptoKey,
+            { name: 'AES-GCM', iv },
+            this.key,
             this.encoder.encode(plaintext)
         );
 
-        // Combine IV and encrypted data
+        // Combine IV + encrypted data
         const combined = new Uint8Array(iv.length + encrypted.byteLength);
         combined.set(iv);
         combined.set(new Uint8Array(encrypted), iv.length);
 
-        // Return as base64
-        return this.arrayBufferToBase64(combined);
+        return this.toBase64(combined);
     }
 
     /**
-     * Decrypt a message
-     * Expects base64 encoded string with IV prepended
+     * Decrypt message
      */
     async decrypt(encryptedBase64) {
-        if (!this.cryptoKey) {
-            throw new Error('Encryption key not initialized');
-        }
+        if (!this.key) throw new Error('Key not initialized');
 
         try {
-            // Convert from base64
-            const combined = this.base64ToArrayBuffer(encryptedBase64);
-
-            // Extract IV and encrypted data
+            const combined = this.fromBase64(encryptedBase64);
             const iv = combined.slice(0, 12);
-            const encrypted = combined.slice(12);
+            const data = combined.slice(12);
 
-            // Decrypt
             const decrypted = await crypto.subtle.decrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
-                this.cryptoKey,
-                encrypted
+                { name: 'AES-GCM', iv },
+                this.key,
+                data
             );
 
             return this.decoder.decode(decrypted);
         } catch (error) {
             console.error('Decryption failed:', error);
-            return '[🔒 Unable to decrypt - wrong passphrase?]';
+            return '[🔒 Failed to decrypt - wrong passphrase?]';
         }
     }
 
-    /**
-     * Utility: Convert ArrayBuffer to base64
-     */
-    arrayBufferToBase64(buffer) {
+    toBase64(buffer) {
         let binary = '';
         const bytes = new Uint8Array(buffer);
-        for (let i = 0; i < bytes.byteLength; i++) {
+        for (let i = 0; i < bytes.length; i++) {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
     }
 
-    /**
-     * Utility: Convert base64 to ArrayBuffer
-     */
-    base64ToArrayBuffer(base64) {
+    fromBase64(base64) {
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) {
@@ -133,19 +107,4 @@ class CryptoManager {
         }
         return bytes;
     }
-
-    /**
-     * Generate a deterministic salt from room ID
-     * This ensures all users in a room derive the same key from the same passphrase
-     */
-    async getRoomSalt(roomId) {
-        const encoded = this.encoder.encode(roomId);
-        const hash = await crypto.subtle.digest('SHA-256', encoded);
-        return new Uint8Array(hash).slice(0, 16);
-    }
-}
-
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CryptoManager;
 }
